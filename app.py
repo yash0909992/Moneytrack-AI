@@ -84,15 +84,31 @@ page = st.sidebar.radio(
 # LOAD DATA
 # --------------------------------------------------
 
+# --------------------------------------------------
+# LOAD DATA
+# --------------------------------------------------
+
 df = pd.read_csv(
     "data/sample_transactions.csv",
     encoding="utf-8-sig"
 )
 
 # Clean column names
-df.columns = df.columns.str.strip()
+df.columns = (
+    df.columns
+    .str.strip()
+    .str.replace("\ufeff", "", regex=False)
+)
 
-df["Date"] = pd.to_datetime(df["Date"])
+# Show columns temporarily
+st.write("CSV Columns:", df.columns.tolist())
+
+# Convert Date
+if "Date" in df.columns:
+    df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
+else:
+    st.error("Date column is missing from sample_transactions.csv")
+    st.stop()
 
 
 def categorize_transaction(description):
