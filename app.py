@@ -100,15 +100,9 @@ df.columns = (
     .str.replace("\ufeff", "", regex=False)
 )
 
-# Show columns temporarily
-st.write("CSV Columns:", df.columns.tolist())
 
-# Convert Date
-if "Date" in df.columns:
-    df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
-else:
-    st.error("Date column is missing from sample_transactions.csv")
-    st.stop()
+df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
+
 
 
 def categorize_transaction(description):
