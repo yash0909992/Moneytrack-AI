@@ -84,7 +84,7 @@ page = st.sidebar.radio(
 # LOAD DATA
 # --------------------------------------------------
 
-df = pd.read_csv("C:/Users/yashl/OneDrive/Desktop/Moneytrack AI/data/sample_transactions.csv")
+df = pd.read_csv("data/financial_history.csv")
 df["Date"] = pd.to_datetime(df["Date"])
 
 
