@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import os
-
+from sklearn.ensemble import IsolationForest
 
 # --------------------------------------------------
 # PAGE CONFIGURATION
@@ -437,25 +437,7 @@ elif page == "💳 Transactions":
 
 
 
-    # ----------------------------------------------
-    # SPENDING BY CATEGORY
-    # ----------------------------------------------
-
-    st.subheader("💸 Spending by Category")
-
-    fig = px.bar(
-        category_expense,
-        x="Category",
-        y="Amount",
-        title="Expenses by Category"
-    )
-
-    st.plotly_chart(
-        fig,
-        use_container_width=True
-    )
-
-
+    
 
     # ----------------------------------------------
     # SPENDING DISTRIBUTION
@@ -496,8 +478,8 @@ elif page == "📈 Predictions":
     st.subheader("📈 Expense Forecast")
 
     monthly_ml = pd.read_csv(
-        "C:/Users/yashl/OneDrive/Desktop/Moneytrack AI/data/financial_history.csv"
-    )
+    "data/financial_history.csv"
+)
 
     monthly_ml["Month"] = pd.to_datetime(
         monthly_ml["Month"]
@@ -627,7 +609,7 @@ elif page == "📈 Predictions":
     )
 
 
-
+                   
 
 
 elif page == "🧠 AI Advisor":
@@ -1106,3 +1088,64 @@ Do not guarantee investment returns.
             st.warning(
                 "Please enter a goal name first."
             )
+
+
+# ----------------------------------------------
+# MODEL 2 - UNUSUAL TRANSACTION DETECTION
+# ----------------------------------------------
+
+st.subheader("🚨 Unusual Transaction Detection")
+
+# Select expense transactions
+expense_data = df[df["Type"] == "Expense"].copy()
+
+# Train Isolation Forest
+anomaly_model = IsolationForest(
+    contamination=0.05,
+    random_state=42
+)
+
+anomaly_model.fit(
+    expense_data[["Amount"]]
+)
+
+# Predict anomalies
+expense_data["Anomaly"] = anomaly_model.predict(
+    expense_data[["Amount"]]
+)
+
+
+
+# ----------------------------------------------
+# SHOW UNUSUAL TRANSACTIONS
+# ----------------------------------------------
+
+unusual_transactions = expense_data[
+    expense_data["Anomaly"] == -1
+]
+
+st.write(
+    f"🚨 {len(unusual_transactions)} unusual "
+    "transactions detected."
+)
+
+if len(unusual_transactions) > 0:
+
+    st.dataframe(
+        unusual_transactions[
+            [
+                "Date",
+                "Description",
+                "Amount",
+                "Category"
+            ]
+        ],
+        use_container_width=True,
+        hide_index=True
+    )
+
+else:
+
+    st.success(
+        "✅ No unusual transactions detected."
+    )
