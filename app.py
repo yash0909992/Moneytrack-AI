@@ -88,21 +88,19 @@ page = st.sidebar.radio(
 # LOAD DATA
 # --------------------------------------------------
 
+
 df = pd.read_csv(
     "data/sample_transactions.csv",
     encoding="utf-8-sig"
 )
 
-# Clean column names
 df.columns = (
     df.columns
     .str.strip()
     .str.replace("\ufeff", "", regex=False)
 )
 
-
-df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
-
+df["Date"] = pd.to_datetime(df["Date"])
 
 
 def categorize_transaction(description):
