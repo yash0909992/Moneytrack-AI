@@ -472,20 +472,22 @@ elif page == "📈 Predictions":
     )
 
     # ----------------------------------------------
-    # LOAD ML DATA
+    # MODEL 1 - EXPENSE FORECAST
     # ----------------------------------------------
 
     st.subheader("📈 Expense Forecast")
 
+    # Load historical financial data
     monthly_ml = pd.read_csv(
-    "data/financial_history.csv"
-)
+        "data/financial_history.csv"
+    )
 
+    # Convert Month column to date
     monthly_ml["Month"] = pd.to_datetime(
         monthly_ml["Month"]
     )
 
-    # Create month number
+    # Create month number for ML
     monthly_ml["Month_Number"] = range(
         1,
         len(monthly_ml) + 1
@@ -496,47 +498,73 @@ elif page == "📈 Predictions":
     # ----------------------------------------------
 
     x = monthly_ml[["Month_Number"]]
-
     y = monthly_ml["Expense"]
 
     # ----------------------------------------------
-    # TRAIN MODEL 1
+    # TRAIN LINEAR REGRESSION MODEL
     # ----------------------------------------------
 
     from sklearn.linear_model import LinearRegression
 
     expense_model = LinearRegression()
 
-    expense_model.fit(x, y)
+    expense_model.fit(
+        x,
+        y
+    )
 
     # ----------------------------------------------
     # PREDICT NEXT MONTH
     # ----------------------------------------------
 
-    next_month = len(monthly_ml) + 1
+    next_month_number = len(monthly_ml) + 1
 
     predicted_expense = expense_model.predict(
-        [[next_month]]
+        [[next_month_number]]
     )[0]
 
     # ----------------------------------------------
-    # SHOW PREDICTION
+    # GET ACTUAL NEXT MONTH NAME
+    # ----------------------------------------------
+
+    last_month = monthly_ml["Month"].max()
+
+    forecast_month = (
+        last_month +
+        pd.DateOffset(months=1)
+    )
+
+    forecast_month_name = forecast_month.strftime(
+        "%B %Y"
+    )
+
+    # ----------------------------------------------
+    # DISPLAY PREDICTION
     # ----------------------------------------------
 
     col1, col2 = st.columns(2)
 
     col1.metric(
-        "💸 Predicted Next Month Expense",
+        "💸 Predicted Expense",
         f"₹{predicted_expense:,.0f}"
     )
 
     col2.metric(
         "📅 Forecast Month",
-        f"Month {next_month}"
+        forecast_month_name
     )
 
     # ----------------------------------------------
-    # HISTORICAL DATA
+    # EXPLANATION
+    # ----------------------------------------------
+
+    st.info(
+        f"🤖 The Linear Regression model predicts "
+        f"expenses for {forecast_month_name}."
+    )
+
+    # ----------------------------------------------
+    # EXPENSE TREND
     # ----------------------------------------------
 
     st.subheader("📊 Expense Forecast Trend")
@@ -555,46 +583,40 @@ elif page == "📈 Predictions":
     )
 
     # ----------------------------------------------
-    # SHOW DATA
+    # HISTORICAL DATA
     # ----------------------------------------------
 
     st.subheader("📋 Historical ML Data")
 
     st.dataframe(
         monthly_ml,
-        use_container_width=True
+        use_container_width=True,
+        hide_index=True
     )
 
-
-
-
-
-
     # ----------------------------------------------
-    # MODEL 2 - SAVINGS HEALTH
+    # SAVINGS HEALTH
     # ----------------------------------------------
 
     st.subheader("🏦 Savings Health")
 
-    # Calculate current savings rate
-
     current_savings_rate = savings_rate
 
-    # Classify financial health
-
     if current_savings_rate >= 30:
+
         savings_health = "Excellent"
 
     elif current_savings_rate >= 20:
+
         savings_health = "Good"
 
     elif current_savings_rate >= 10:
+
         savings_health = "Average"
 
     else:
-        savings_health = "Poor"
 
-    # Display result
+        savings_health = "Poor"
 
     col1, col2 = st.columns(2)
 
@@ -609,7 +631,9 @@ elif page == "📈 Predictions":
     )
 
 
-                   
+
+
+   # AI ADVISOR                 
 
 
 elif page == "🧠 AI Advisor":
