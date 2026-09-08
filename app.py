@@ -574,18 +574,7 @@ elif page == "💳 Transactions":
     )
 
 
-# ----------------------------------------------
-# ML PREDICTIONS
-# ----------------------------------------------
 
-elif page == "📈 Predictions":
-
-    st.header("🤖 ML Predictions")
-
-    st.write(
-        "Machine Learning models analyze your financial "
-        "behavior and provide predictive insights."
-    )
 
    # --------------------------------------------------
 # ML PREDICTIONS
@@ -600,7 +589,6 @@ elif page == "📈 Predictions":
         "behavior and provide predictive insights."
     )
 
-    st.success("✅ NEW ML CODE IS RUNNING")
 
     st.subheader("📈 Expense Forecast")
 
