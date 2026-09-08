@@ -81,26 +81,133 @@ page = st.sidebar.radio(
 
 
 # --------------------------------------------------
-# LOAD DATA
+# LOAD TRANSACTION DATA
 # --------------------------------------------------
 
-# --------------------------------------------------
-# LOAD DATA
-# --------------------------------------------------
+st.sidebar.markdown("---")
+st.sidebar.subheader("📂 Upload Your Data")
 
-
-df = pd.read_csv(
-    "data/sample_transactions.csv",
-    encoding="utf-8-sig"
+uploaded_file = st.sidebar.file_uploader(
+    "Upload CSV or Excel file",
+    type=["csv", "xlsx"]
 )
 
-df.columns = (
-    df.columns
-    .str.strip()
-    .str.replace("\ufeff", "", regex=False)
-)
+# --------------------------------------------------
+# READ UPLOADED FILE
+# --------------------------------------------------
 
-df["Date"] = pd.to_datetime(df["Date"])
+if uploaded_file is not None:
+
+    try:
+
+        # CSV file
+        if uploaded_file.name.endswith(".csv"):
+
+            df = pd.read_csv(
+                uploaded_file,
+                encoding="utf-8-sig"
+            )
+
+        # Excel file
+        elif uploaded_file.name.endswith(".xlsx"):
+
+            df = pd.read_excel(
+                uploaded_file
+            )
+
+        # Clean column names
+        df.columns = (
+            df.columns
+            .str.strip()
+            .str.replace(
+                "\ufeff",
+                "",
+                regex=False
+            )
+        )
+
+        # Required columns
+        required_columns = [
+            "Date",
+            "Description",
+            "Amount",
+            "Type"
+        ]
+
+        missing_columns = [
+            column
+            for column in required_columns
+            if column not in df.columns
+        ]
+
+        if missing_columns:
+
+            st.sidebar.error(
+                "❌ Missing columns: "
+                + ", ".join(missing_columns)
+            )
+
+            st.stop()
+
+        # Convert date
+        df["Date"] = pd.to_datetime(
+            df["Date"],
+            errors="coerce"
+        )
+
+        # Convert amount to number
+        df["Amount"] = pd.to_numeric(
+            df["Amount"],
+            errors="coerce"
+        )
+
+        # Remove invalid rows
+        df = df.dropna(
+            subset=[
+                "Date",
+                "Description",
+                "Amount",
+                "Type"
+            ]
+        )
+
+        st.sidebar.success(
+            f"✅ {len(df)} transactions loaded"
+        )
+
+    except Exception as e:
+
+        st.sidebar.error(
+            f"❌ Error reading file: {e}"
+        )
+
+        st.stop()
+
+# --------------------------------------------------
+# USE SAMPLE DATA IF NO FILE IS UPLOADED
+# --------------------------------------------------
+
+else:
+
+    df = pd.read_csv(
+        "data/sample_transactions.csv",
+        encoding="utf-8-sig"
+    )
+
+    df.columns = (
+        df.columns
+        .str.strip()
+        .str.replace(
+            "\ufeff",
+            "",
+            regex=False
+        )
+    )
+
+    df["Date"] = pd.to_datetime(
+        df["Date"],
+        errors="coerce"
+    )
 
 
 def categorize_transaction(description):
@@ -480,132 +587,221 @@ elif page == "📈 Predictions":
         "behavior and provide predictive insights."
     )
 
-    # ----------------------------------------------
+   # --------------------------------------------------
+# ML PREDICTIONS
+# --------------------------------------------------
+
+elif page == "📈 Predictions":
+
+    st.header("🤖 ML Predictions")
+
+    st.write(
+        "Machine Learning models analyze your financial "
+        "behavior and provide predictive insights."
+    )
+
+    # ==================================================
     # MODEL 1 - EXPENSE FORECAST
-    # ----------------------------------------------
+    # ==================================================
 
     st.subheader("📈 Expense Forecast")
 
-    # Load historical financial data
-    monthly_ml = pd.read_csv(
-        "data/financial_history.csv"
+    # ----------------------------------------------
+    # GET EXPENSE TRANSACTIONS
+    # ----------------------------------------------
+
+    expense_df = df[
+        df["Type"] == "Expense"
+    ].copy()
+
+    # Make sure Date is datetime
+    expense_df["Date"] = pd.to_datetime(
+        expense_df["Date"],
+        errors="coerce"
     )
 
-    # Convert Month column to date
-    monthly_ml["Month"] = pd.to_datetime(
-        monthly_ml["Month"]
-    )
-
-    # Create month number for ML
-    monthly_ml["Month_Number"] = range(
-        1,
-        len(monthly_ml) + 1
-    )
-
-    # ----------------------------------------------
-    # PREPARE DATA
-    # ----------------------------------------------
-
-    x = monthly_ml[["Month_Number"]]
-    y = monthly_ml["Expense"]
-
-    # ----------------------------------------------
-    # TRAIN LINEAR REGRESSION MODEL
-    # ----------------------------------------------
-
-    from sklearn.linear_model import LinearRegression
-
-    expense_model = LinearRegression()
-
-    expense_model.fit(
-        x,
-        y
+    # Remove invalid dates
+    expense_df = expense_df.dropna(
+        subset=["Date"]
     )
 
     # ----------------------------------------------
-    # PREDICT NEXT MONTH
+    # CREATE MONTHLY EXPENSE DATA
     # ----------------------------------------------
 
-    next_month_number = len(monthly_ml) + 1
-
-    predicted_expense = expense_model.predict(
-        [[next_month_number]]
-    )[0]
-
-    # ----------------------------------------------
-    # GET ACTUAL NEXT MONTH NAME
-    # ----------------------------------------------
-
-    last_month = monthly_ml["Month"].max()
-
-    forecast_month = (
-        last_month +
-        pd.DateOffset(months=1)
+    expense_df["Month"] = (
+        expense_df["Date"]
+        .dt.to_period("M")
+        .dt.to_timestamp()
     )
 
-    forecast_month_name = forecast_month.strftime(
-        "%B %Y"
+    monthly_ml = (
+        expense_df
+        .groupby("Month")["Amount"]
+        .sum()
+        .reset_index()
+        .sort_values("Month")
     )
 
     # ----------------------------------------------
-    # DISPLAY PREDICTION
+    # CHECK DATA
     # ----------------------------------------------
 
-    col1, col2 = st.columns(2)
+    if len(monthly_ml) < 2:
 
-    col1.metric(
-        "💸 Predicted Expense",
-        f"₹{predicted_expense:,.0f}"
-    )
+        st.warning(
+            "⚠️ At least 2 months of expense data "
+            "are required for ML prediction."
+        )
 
-    col2.metric(
-        "📅 Forecast Month",
-        forecast_month_name
-    )
+    else:
 
-    # ----------------------------------------------
-    # EXPLANATION
-    # ----------------------------------------------
+        # ------------------------------------------
+        # CREATE MONTH NUMBER
+        # ------------------------------------------
 
-    st.info(
-        f"🤖 The Linear Regression model predicts "
-        f"expenses for {forecast_month_name}."
-    )
+        monthly_ml["Month_Number"] = range(
+            1,
+            len(monthly_ml) + 1
+        )
 
-    # ----------------------------------------------
-    # EXPENSE TREND
-    # ----------------------------------------------
+        # ------------------------------------------
+        # PREPARE ML DATA
+        # ------------------------------------------
 
-    st.subheader("📊 Expense Forecast Trend")
+        x = monthly_ml[
+            ["Month_Number"]
+        ]
 
-    fig_forecast = px.line(
-        monthly_ml,
-        x="Month",
-        y="Expense",
-        markers=True,
-        title="Monthly Expense Trend"
-    )
+        y = monthly_ml[
+            "Amount"
+        ]
 
-    st.plotly_chart(
-        fig_forecast,
-        use_container_width=True
-    )
+        # ------------------------------------------
+        # LINEAR REGRESSION MODEL
+        # ------------------------------------------
 
-    # ----------------------------------------------
-    # HISTORICAL DATA
-    # ----------------------------------------------
+        from sklearn.linear_model import LinearRegression
 
-    st.subheader("📋 Historical ML Data")
+        expense_model = LinearRegression()
 
-    st.dataframe(
-        monthly_ml,
-        use_container_width=True,
-        hide_index=True
-    )
+        expense_model.fit(
+            x,
+            y
+        )
 
-    # ----------------------------------------------
+        # ------------------------------------------
+        # PREDICT NEXT MONTH
+        # ------------------------------------------
+
+        next_month_number = (
+            len(monthly_ml) + 1
+        )
+
+        predicted_expense = (
+            expense_model.predict(
+                [[next_month_number]]
+            )[0]
+        )
+
+        # ------------------------------------------
+        # FIND NEXT MONTH NAME
+        # ------------------------------------------
+
+        last_month = monthly_ml[
+            "Month"
+        ].max()
+
+        forecast_month = (
+            last_month
+            + pd.DateOffset(months=1)
+        )
+
+        forecast_month_name = (
+            forecast_month.strftime(
+                "%B %Y"
+            )
+        )
+
+        # ------------------------------------------
+        # DISPLAY ML PREDICTION
+        # ------------------------------------------
+
+        col1, col2 = st.columns(2)
+
+        col1.metric(
+            "💸 Predicted Expense",
+            f"₹{predicted_expense:,.0f}"
+        )
+
+        col2.metric(
+            "📅 Forecast Month",
+            forecast_month_name
+        )
+
+        st.success(
+            f"🤖 Predicted expense for "
+            f"{forecast_month_name}: "
+            f"₹{predicted_expense:,.0f}"
+        )
+
+        # ------------------------------------------
+        # MONTHLY EXPENSE CHART
+        # ------------------------------------------
+
+        st.subheader(
+            "📊 Monthly Expense Trend"
+        )
+
+        fig_forecast = px.line(
+            monthly_ml,
+            x="Month",
+            y="Amount",
+            markers=True,
+            title="Monthly Expense History"
+        )
+
+        st.plotly_chart(
+            fig_forecast,
+            use_container_width=True
+        )
+
+        # ------------------------------------------
+        # MONTHLY EXPENSE TABLE
+        # ------------------------------------------
+
+        st.subheader(
+            "📋 Monthly Expense Data"
+        )
+
+        display_monthly = monthly_ml.copy()
+
+        display_monthly["Month"] = (
+            display_monthly["Month"]
+            .dt.strftime("%B %Y")
+        )
+
+        display_monthly = display_monthly[
+            [
+                "Month",
+                "Amount"
+            ]
+        ]
+
+        display_monthly.columns = [
+            "Month",
+            "Total Expense"
+        ]
+
+        st.dataframe(
+            display_monthly,
+            use_container_width=True,
+            hide_index=True
+        )
+
+    # ==================================================
     # SAVINGS HEALTH
-    # ----------------------------------------------
+    # ==================================================
 
     st.subheader("🏦 Savings Health")
 
@@ -638,6 +834,89 @@ elif page == "📈 Predictions":
         "🏦 Savings Health",
         savings_health
     )
+
+    # ==================================================
+    # MODEL 2 - UNUSUAL TRANSACTION DETECTION
+    # ==================================================
+
+    st.subheader(
+        "🚨 Unusual Transaction Detection"
+    )
+
+    # Get only expenses
+    anomaly_data = df[
+        df["Type"] == "Expense"
+    ].copy()
+
+    if len(anomaly_data) >= 10:
+
+        # ------------------------------------------
+        # TRAIN ISOLATION FOREST
+        # ------------------------------------------
+
+        from sklearn.ensemble import IsolationForest
+
+        anomaly_model = IsolationForest(
+            contamination=0.01,
+            random_state=42
+        )
+
+        anomaly_model.fit(
+            anomaly_data[["Amount"]]
+        )
+
+        # ------------------------------------------
+        # DETECT ANOMALIES
+        # ------------------------------------------
+
+        anomaly_data["Anomaly"] = (
+            anomaly_model.predict(
+                anomaly_data[["Amount"]]
+            )
+        )
+
+        unusual_transactions = (
+            anomaly_data[
+                anomaly_data["Anomaly"] == -1
+            ]
+        )
+
+        # ------------------------------------------
+        # DISPLAY RESULT
+        # ------------------------------------------
+
+        st.write(
+            f"🚨 {len(unusual_transactions)} "
+            "unusual transactions detected."
+        )
+
+        if len(unusual_transactions) > 0:
+
+            st.dataframe(
+                unusual_transactions[
+                    [
+                        "Date",
+                        "Description",
+                        "Amount",
+                        "Category"
+                    ]
+                ],
+                use_container_width=True,
+                hide_index=True
+            )
+
+        else:
+
+            st.success(
+                "✅ No unusual transactions detected."
+            )
+
+    else:
+
+        st.warning(
+            "⚠️ At least 10 expense transactions "
+            "are required for anomaly detection."
+        )
 
 
 
@@ -1123,62 +1402,3 @@ Do not guarantee investment returns.
             )
 
 
-# ----------------------------------------------
-# MODEL 2 - UNUSUAL TRANSACTION DETECTION
-# ----------------------------------------------
-
-st.subheader("🚨 Unusual Transaction Detection")
-
-# Select expense transactions
-expense_data = df[df["Type"] == "Expense"].copy()
-
-# Train Isolation Forest
-anomaly_model = IsolationForest(
-    contamination=0.05,
-    random_state=42
-)
-
-anomaly_model.fit(
-    expense_data[["Amount"]]
-)
-
-# Predict anomalies
-expense_data["Anomaly"] = anomaly_model.predict(
-    expense_data[["Amount"]]
-)
-
-
-
-# ----------------------------------------------
-# SHOW UNUSUAL TRANSACTIONS
-# ----------------------------------------------
-
-unusual_transactions = expense_data[
-    expense_data["Anomaly"] == -1
-]
-
-st.write(
-    f"🚨 {len(unusual_transactions)} unusual "
-    "transactions detected."
-)
-
-if len(unusual_transactions) > 0:
-
-    st.dataframe(
-        unusual_transactions[
-            [
-                "Date",
-                "Description",
-                "Amount",
-                "Category"
-            ]
-        ],
-        use_container_width=True,
-        hide_index=True
-    )
-
-else:
-
-    st.success(
-        "✅ No unusual transactions detected."
-    )
