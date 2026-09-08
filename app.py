@@ -305,10 +305,6 @@ if page == "📊 Dashboard":
 
 
 
-# --------------------------------------------------
-# TRANSACTIONS
-# --------------------------------------------------
-
 elif page == "💳 Transactions":
 
     st.header("💳 Transactions")
@@ -318,14 +314,16 @@ elif page == "💳 Transactions":
     )
 
     # ----------------------------------------------
-    # CREATE FILTERED DATA
+    # KPI PLACEHOLDER
     # ----------------------------------------------
 
-    filtered_df = df.copy()
+    kpi_placeholder = st.container()
 
     # ----------------------------------------------
     # SEARCH
     # ----------------------------------------------
+
+    filtered_df = df.copy()
 
     search = st.text_input(
         "🔍 Search transaction",
@@ -333,7 +331,6 @@ elif page == "💳 Transactions":
     )
 
     if search:
-
         filtered_df = filtered_df[
             filtered_df["Description"]
             .astype(str)
@@ -349,10 +346,7 @@ elif page == "💳 Transactions":
     # ----------------------------------------------
 
     categories = ["All"] + sorted(
-        df["Category"]
-        .dropna()
-        .unique()
-        .tolist()
+        df["Category"].dropna().unique().tolist()
     )
 
     selected_category = st.selectbox(
@@ -361,7 +355,6 @@ elif page == "💳 Transactions":
     )
 
     if selected_category != "All":
-
         filtered_df = filtered_df[
             filtered_df["Category"] == selected_category
         ]
@@ -382,13 +375,12 @@ elif page == "💳 Transactions":
     )
 
     if selected_type != "All":
-
         filtered_df = filtered_df[
             filtered_df["Type"] == selected_type
         ]
 
     # ----------------------------------------------
-    # FILTERED KPIs
+    # CALCULATE FILTERED KPIs
     # ----------------------------------------------
 
     total_transactions = len(filtered_df)
@@ -406,28 +398,30 @@ elif page == "💳 Transactions":
     )
 
     # ----------------------------------------------
-    # DISPLAY KPIs
+    # PUT KPIs IN TOP PLACEHOLDER
     # ----------------------------------------------
 
-    col1, col2, col3 = st.columns(3)
+    with kpi_placeholder:
 
-    col1.metric(
-        "📋 Total Transactions",
-        total_transactions
-    )
+        col1, col2, col3 = st.columns(3)
 
-    col2.metric(
-        "💰 Income Transactions",
-        income_transactions
-    )
+        col1.metric(
+            "📋 Total Transactions",
+            total_transactions
+        )
 
-    col3.metric(
-        "💸 Expense Transactions",
-        expense_transactions
-    )
+        col2.metric(
+            "💰 Income Transactions",
+            income_transactions
+        )
+
+        col3.metric(
+            "💸 Expense Transactions",
+            expense_transactions
+        )
 
     # ----------------------------------------------
-    # DISPLAY TRANSACTIONS
+    # TRANSACTION TABLE
     # ----------------------------------------------
 
     st.subheader("📋 Transaction History")
