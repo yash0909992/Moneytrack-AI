@@ -600,9 +600,7 @@ elif page == "📈 Predictions":
         "behavior and provide predictive insights."
     )
 
-    # ==================================================
-    # MODEL 1 - EXPENSE FORECAST
-    # ==================================================
+    st.success("✅ NEW ML CODE IS RUNNING")
 
     st.subheader("📈 Expense Forecast")
 
