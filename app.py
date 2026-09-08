@@ -318,35 +318,10 @@ elif page == "💳 Transactions":
     )
 
     # ----------------------------------------------
-    # TRANSACTION SUMMARY
+    # CREATE FILTERED DATA
     # ----------------------------------------------
 
-    total_transactions = len(df)
-
-    income_transactions = len(
-        df[df["Type"] == "Income"]
-    )
-
-    expense_transactions = len(
-        df[df["Type"] == "Expense"]
-    )
-
-    col1, col2, col3 = st.columns(3)
-
-    col1.metric(
-        "📋 Total Transactions",
-        total_transactions
-    )
-
-    col2.metric(
-        "💰 Income Transactions",
-        income_transactions
-    )
-
-    col3.metric(
-        "💸 Expense Transactions",
-        expense_transactions
-    )
+    filtered_df = df.copy()
 
     # ----------------------------------------------
     # SEARCH
@@ -356,8 +331,6 @@ elif page == "💳 Transactions":
         "🔍 Search transaction",
         placeholder="Example: Amazon, Food, Salary..."
     )
-
-    filtered_df = df.copy()
 
     if search:
 
@@ -376,7 +349,10 @@ elif page == "💳 Transactions":
     # ----------------------------------------------
 
     categories = ["All"] + sorted(
-        df["Category"].dropna().unique().tolist()
+        df["Category"]
+        .dropna()
+        .unique()
+        .tolist()
     )
 
     selected_category = st.selectbox(
@@ -410,6 +386,45 @@ elif page == "💳 Transactions":
         filtered_df = filtered_df[
             filtered_df["Type"] == selected_type
         ]
+
+    # ----------------------------------------------
+    # FILTERED KPIs
+    # ----------------------------------------------
+
+    total_transactions = len(filtered_df)
+
+    income_transactions = len(
+        filtered_df[
+            filtered_df["Type"] == "Income"
+        ]
+    )
+
+    expense_transactions = len(
+        filtered_df[
+            filtered_df["Type"] == "Expense"
+        ]
+    )
+
+    # ----------------------------------------------
+    # DISPLAY KPIs
+    # ----------------------------------------------
+
+    col1, col2, col3 = st.columns(3)
+
+    col1.metric(
+        "📋 Total Transactions",
+        total_transactions
+    )
+
+    col2.metric(
+        "💰 Income Transactions",
+        income_transactions
+    )
+
+    col3.metric(
+        "💸 Expense Transactions",
+        expense_transactions
+    )
 
     # ----------------------------------------------
     # DISPLAY TRANSACTIONS
